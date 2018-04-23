@@ -29,6 +29,7 @@ data Expr a where
   Atanh :: (Floating a) => Expr a -> Expr a
 
 deriving instance (Show a) => Show (Expr a)
+deriving instance (Eq a) => Eq (Expr a)
 
 instance (Num a) => Num (Expr a) where{
   fromInteger = Const . fromInteger
@@ -78,3 +79,25 @@ partial s (Asinh x) = (partial s x) * (sqrt $ x*x+1)
 partial s (Acosh x) = (partial s x) * (sqrt $ x*x-1)
 partial s (Atanh x) = -(partial s x) / (1-x*x)
 
+
+reduce :: (Eq a) => Expr a -> Expr a
+reduce ((Const 0):+x) = x
+reduce (x:+(Const 0)) = x
+reduce (x:-(Const 0)) = x
+reduce ((Const 1):*x) = x
+reduce (x:*(Const 1)) = x
+reduce ((Const 0):*_) = 0
+reduce (_:*(Const 0)) = 0
+reduce ((Const x):+(Const y)) = Const $ x+y
+reduce ((Const x):-(Const y)) = Const $ x-y
+reduce ((Const x):*(Const y)) = Const $ x*y
+reduce ((Const x):/(Const y)) = Const $ x/y
+reduce ((x:+y):+z) = (reduce x):+(reduce $ y:+z)
+reduce ((x:*y):*z) = (reduce x):*(reduce $ y:*z)
+reduce (x:*(y:+z)) = (reduce $ x*y) + (reduce $ x*z)
+reduce ((x:+y):*z) = (reduce $ x*z) + (reduce $ y*z)
+reduce (x:+y) = (reduce x):+(reduce y)
+reduce (x:*y) = (reduce x):*(reduce y)
+reduce (x:-y) = (reduce x):-(reduce y)
+--not finished
+reduce x = x
